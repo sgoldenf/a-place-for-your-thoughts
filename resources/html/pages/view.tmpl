@@ -1,0 +1,14 @@
+{{define "title"}}Post #{{.Post.Id}}{{end}}
+{{define "main"}}
+   <div class='post'>
+       <div class='metadata'>
+           <strong>{{.Post.Title}}</strong>
+           <span>#{{.Post.Id}}</span>
+       </div>
+        {{if .TextMD}}
+            <pre><code>{{.TextMD}}</code></pre>
+        {{else}}
+            <pre><code>{{.Post.Text}}</code></pre>
+        {{end}}
+   </div>
+{{end}}

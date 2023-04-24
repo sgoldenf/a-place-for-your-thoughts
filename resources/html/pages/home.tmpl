@@ -1,0 +1,28 @@
+{{define "title"}}Home{{end}}
+{{define "main"}}
+    <h2>Latest Posts</h2>
+    {{if .Posts}}
+        <table>
+            <tr>
+                <th>Title</th>
+                <th>ID</th>
+            <tr>
+            {{range .Posts}}
+                <tr>
+                    <td><a href='/post/view/{{.Id}}'>{{.Title}}</a></td>
+                    <td>#{{.Id}}</td>
+                </tr>
+            {{end}}
+        </table>
+        <div class='page-navigation'>
+            {{if ne .PrevPage 0}}
+                <button><a href='/page/{{.PrevPage}}'><< prev</a></button>
+            {{end}}
+            {{if ne .NextPage 0}}
+                <button><a href='/page/{{.NextPage}}'>next >></a></button>
+            {{end}}
+        </div>
+    {{else}}
+        <p>There's nothing here to see... Yet!</p>
+    {{end}}
+{{end}}
