@@ -18,6 +18,7 @@ require (
 	github.com/alexedwards/scs/v2 v2.5.1 // indirect
 	github.com/go-playground/form/v4 v4.2.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.0 // indirect
+	github.com/justinas/nosurf v1.1.1 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 )
 
