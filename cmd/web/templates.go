@@ -8,13 +8,14 @@ import (
 )
 
 type templateData struct {
-	Post     *models.Post
-	TextMD   template.HTML
-	Posts    []*models.Post
-	PrevPage int
-	NextPage int
-	Form     any
-	Popup    string
+	Post            *models.Post
+	TextMD          template.HTML
+	Posts           []*models.Post
+	PrevPage        int
+	NextPage        int
+	Form            any
+	Popup           string
+	IsAuthenticated bool
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

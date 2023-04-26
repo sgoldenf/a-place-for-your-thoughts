@@ -27,6 +27,12 @@ type userSignUpForm struct {
 	validator.Validator `form:"-"`
 }
 
+type userLoginForm struct {
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	page, err := getPage(r)
 	if err != nil {
@@ -47,9 +53,12 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if page*10+1 > count {
 		nextPage = 0
 	}
+	data := app.newTemplateData(r)
+	data.Posts = posts
+	data.PrevPage = page - 1
+	data.NextPage = nextPage
 	app.render(
-		w, http.StatusOK, "home.tmpl",
-		&templateData{Posts: posts, PrevPage: page - 1, NextPage: nextPage})
+		w, http.StatusOK, "home.tmpl", data)
 }
 
 func getPage(r *http.Request) (int, error) {
@@ -65,7 +74,8 @@ func getPage(r *http.Request) (int, error) {
 }
 
 func (app *application) createPostForm(w http.ResponseWriter, r *http.Request) {
-	data := &templateData{Form: postCreateForm{}}
+	data := app.newTemplateData(r)
+	data.Form = postCreateForm{}
 	app.render(w, http.StatusOK, "create.tmpl", data)
 }
 
@@ -80,7 +90,8 @@ func (app *application) CreatePost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.MaxChars(form.Title, 255), "title", "Max length for this field is 255 characters")
 	form.CheckField(validator.NotBlank(form.Content), "content", "This field cannot be blank")
 	if !form.Valid() {
-		data := &templateData{Form: form}
+		data := app.newTemplateData(r)
+		data.Form = form
 		app.render(w, http.StatusUnprocessableEntity, "create.tmpl", data)
 		return
 	}
@@ -159,13 +170,54 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-
+	data := app.newTemplateData(r)
+	data.Form = userLoginForm{}
+	app.render(w, http.StatusOK, "login.tmpl", data)
 }
 
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
-
+	var form userLoginForm
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
+	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "Invalid email address")
+	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "login.tmpl", data)
+		return
+	}
+	id, err := app.users.Authenticate(form.Email, form.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddNonFieldError("Email or password is incorrect")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, http.StatusUnprocessableEntity, "login.tmpl", data)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+	err = app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
+	http.Redirect(w, r, "/post/create", http.StatusSeeOther)
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
-
+	err := app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+	}
+	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
+	app.sessionManager.Put(r.Context(), "popup", "You've been logged out successfully!")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
