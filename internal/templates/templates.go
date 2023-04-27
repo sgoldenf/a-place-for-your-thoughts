@@ -1,4 +1,4 @@
-package main
+package templates
 
 import (
 	"html/template"
@@ -7,7 +7,7 @@ import (
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/models"
 )
 
-type templateData struct {
+type TemplateData struct {
 	Post            *models.Post
 	TextMD          template.HTML
 	Posts           []*models.Post
@@ -19,7 +19,7 @@ type templateData struct {
 	CSRFToken       string
 }
 
-func newTemplateCache() (map[string]*template.Template, error) {
+func NewTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 	pages, err := filepath.Glob("resources/html/pages/*.tmpl")
 	if err != nil {

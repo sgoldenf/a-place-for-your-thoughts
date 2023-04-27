@@ -1,4 +1,4 @@
-package main
+package application
 
 import (
 	"bytes"
@@ -33,19 +33,23 @@ type userLoginForm struct {
 	validator.Validator `form:"-"`
 }
 
-func (app *application) home(w http.ResponseWriter, r *http.Request) {
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
+}
+
+func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	page, err := getPage(r)
 	if err != nil {
 		app.notFound(w)
 		return
 	}
-	posts, err := app.posts.GetPostsList(page)
+	posts, err := app.Posts.GetPostsList(page)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 	nextPage := page + 1
-	count, err := app.posts.GetPostsCount()
+	count, err := app.Posts.GetPostsCount()
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -53,7 +57,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if page*10+1 > count {
 		nextPage = 0
 	}
-	data := app.newTemplateData(r)
+	data := app.NewTemplateData(r)
 	data.Posts = posts
 	data.PrevPage = page - 1
 	data.NextPage = nextPage
@@ -73,13 +77,13 @@ func getPage(r *http.Request) (int, error) {
 	return pageNumber, nil
 }
 
-func (app *application) createPostForm(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
+func (app *Application) createPostForm(w http.ResponseWriter, r *http.Request) {
+	data := app.NewTemplateData(r)
 	data.Form = postCreateForm{}
 	app.render(w, http.StatusOK, "create.tmpl", data)
 }
 
-func (app *application) CreatePost(w http.ResponseWriter, r *http.Request) {
+func (app *Application) CreatePost(w http.ResponseWriter, r *http.Request) {
 	var form postCreateForm
 	err := app.decodePostForm(r, &form)
 	if err != nil {
@@ -90,27 +94,27 @@ func (app *application) CreatePost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.MaxChars(form.Title, 255), "title", "Max length for this field is 255 characters")
 	form.CheckField(validator.NotBlank(form.Content), "content", "This field cannot be blank")
 	if !form.Valid() {
-		data := app.newTemplateData(r)
+		data := app.NewTemplateData(r)
 		data.Form = form
 		app.render(w, http.StatusUnprocessableEntity, "create.tmpl", data)
 		return
 	}
-	id, err := app.posts.CreatePost(form.Title, form.Content)
+	id, err := app.Posts.CreatePost(form.Title, form.Content)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	app.sessionManager.Put(r.Context(), "popup", "Post successfuly created!")
+	app.SessionManager.Put(r.Context(), "popup", "Post successfuly created!")
 	http.Redirect(w, r, fmt.Sprintf("/post/view/%d", id), http.StatusSeeOther)
 }
 
-func (app *application) viewPost(w http.ResponseWriter, r *http.Request) {
+func (app *Application) viewPost(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id < 1 {
 		app.notFound(w)
 		return
 	}
-	post, err := app.posts.ReadPost(id)
+	post, err := app.Posts.ReadPost(id)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			app.notFound(w)
@@ -119,7 +123,7 @@ func (app *application) viewPost(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	data := app.newTemplateData(r)
+	data := app.NewTemplateData(r)
 	data.Post = post
 	var buf bytes.Buffer
 	if err := goldmark.Convert([]byte(post.Text), &buf); err == nil {
@@ -128,13 +132,13 @@ func (app *application) viewPost(w http.ResponseWriter, r *http.Request) {
 	app.render(w, http.StatusOK, "view.tmpl", data)
 }
 
-func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
+func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
+	data := app.NewTemplateData(r)
 	data.Form = userSignUpForm{}
 	app.render(w, http.StatusOK, "signup.tmpl", data)
 }
 
-func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
+func (app *Application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	var form userSignUpForm
 	err := app.decodePostForm(r, &form)
 	if err != nil {
@@ -148,16 +152,16 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "This field must be at least 8 characters long")
 	fmt.Println(form.Validator.FieldErrors, form.Name, form.Password, form.Email)
 	if !form.Valid() {
-		data := app.newTemplateData(r)
+		data := app.NewTemplateData(r)
 		data.Form = form
 		app.render(w, http.StatusUnprocessableEntity, "signup.tmpl", data)
 		return
 	}
-	err = app.users.CreateUser(form.Name, form.Email, form.Password)
+	err = app.Users.CreateUser(form.Name, form.Email, form.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) {
 			form.AddFieldError("email", "Email address is alredy in use")
-			data := app.newTemplateData(r)
+			data := app.NewTemplateData(r)
 			data.Form = form
 			app.render(w, http.StatusUnprocessableEntity, "signup.tmpl", data)
 		} else {
@@ -165,17 +169,17 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	app.sessionManager.Put(r.Context(), "popup", "Your signup was successful. Please log in")
+	app.SessionManager.Put(r.Context(), "popup", "Your signup was successful. Please log in")
 	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
-func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
+func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
+	data := app.NewTemplateData(r)
 	data.Form = userLoginForm{}
 	app.render(w, http.StatusOK, "login.tmpl", data)
 }
 
-func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
+func (app *Application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	var form userLoginForm
 	err := app.decodePostForm(r, &form)
 	if err != nil {
@@ -186,16 +190,16 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "Invalid email address")
 	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
 	if !form.Valid() {
-		data := app.newTemplateData(r)
+		data := app.NewTemplateData(r)
 		data.Form = form
 		app.render(w, http.StatusUnprocessableEntity, "login.tmpl", data)
 		return
 	}
-	id, err := app.users.Authenticate(form.Email, form.Password)
+	id, err := app.Users.Authenticate(form.Email, form.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			form.AddNonFieldError("Email or password is incorrect")
-			data := app.newTemplateData(r)
+			data := app.NewTemplateData(r)
 			data.Form = form
 			app.render(w, http.StatusUnprocessableEntity, "login.tmpl", data)
 		} else {
@@ -203,21 +207,21 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	err = app.sessionManager.RenewToken(r.Context())
+	err = app.SessionManager.RenewToken(r.Context())
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
+	app.SessionManager.Put(r.Context(), "authenticatedUserID", id)
 	http.Redirect(w, r, "/post/create", http.StatusSeeOther)
 }
 
-func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
-	err := app.sessionManager.RenewToken(r.Context())
+func (app *Application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
+	err := app.SessionManager.RenewToken(r.Context())
 	if err != nil {
 		app.serverError(w, err)
 	}
-	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
-	app.sessionManager.Put(r.Context(), "popup", "You've been logged out successfully!")
+	app.SessionManager.Remove(r.Context(), "authenticatedUserID")
+	app.SessionManager.Put(r.Context(), "popup", "You've been logged out successfully!")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

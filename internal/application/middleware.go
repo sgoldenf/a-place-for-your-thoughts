@@ -1,4 +1,4 @@
-package main
+package application
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/justinas/nosurf"
+	"github.com/sgoldenf/a-place-for-your-thoughts/internal/ctxkeys"
 )
 
 func secureHeaders(next http.Handler) http.Handler {
@@ -20,14 +21,14 @@ func secureHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func (app *application) logRequest(next http.Handler) http.Handler {
+func (app *Application) logRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.infoLog.Printf("%s - %s %s %s", r.RemoteAddr, r.Proto, r.Method, r.URL.RequestURI())
+		app.InfoLog.Printf("%s - %s %s %s", r.RemoteAddr, r.Proto, r.Method, r.URL.RequestURI())
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (app *application) recoverPanic(next http.Handler) http.Handler {
+func (app *Application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -39,33 +40,33 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (app *application) loadAndSaveSession(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) loadAndSaveSession(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		app.sessionManager.LoadAndSave(next).ServeHTTP(w, r)
+		app.SessionManager.LoadAndSave(next).ServeHTTP(w, r)
 	}
 }
 
-func (app *application) authenticate(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) authenticate(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+		id := app.SessionManager.GetInt(r.Context(), "authenticatedUserID")
 		if id == 0 {
 			next.ServeHTTP(w, r)
 			return
 		}
-		exists, err := app.users.Exists(id)
+		exists, err := app.Users.Exists(id)
 		if err != nil {
 			app.serverError(w, err)
 			return
 		}
 		if exists {
-			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
+			ctx := context.WithValue(r.Context(), ctxkeys.IsAuthenticatedContextKey, true)
 			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)
 	}
 }
 
-func (app *application) requireAuthentication(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) requireAuthentication(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !app.isAuthenticated(r) {
 			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
@@ -76,7 +77,7 @@ func (app *application) requireAuthentication(next http.HandlerFunc) http.Handle
 	}
 }
 
-func (app *application) noSurf(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) noSurf(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		csrfHandler := nosurf.New(next)
 		csrfHandler.SetBaseCookie(http.Cookie{

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -14,18 +13,10 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sgoldenf/a-place-for-your-thoughts/internal/application"
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/models"
+	"github.com/sgoldenf/a-place-for-your-thoughts/internal/templates"
 )
-
-type application struct {
-	errorLog       *log.Logger
-	infoLog        *log.Logger
-	posts          *models.PostModel
-	users          *models.UserModel
-	templateCache  map[string]*template.Template
-	formDecoder    *form.Decoder
-	sessionManager *scs.SessionManager
-}
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
@@ -40,7 +31,7 @@ func main() {
 		errorLog.Fatal(err)
 	}
 	defer pool.Close()
-	cache, err := newTemplateCache()
+	cache, err := templates.NewTemplateCache()
 	if err != nil {
 		errorLog.Fatal(err)
 	}
@@ -49,20 +40,20 @@ func main() {
 	sessionManager.Store = pgxstore.New(pool)
 	sessionManager.Lifetime = 12 * time.Hour
 	sessionManager.Cookie.Secure = true
-	app := &application{
-		errorLog:       errorLog,
-		infoLog:        infoLog,
-		posts:          &models.PostModel{Pool: pool},
-		users:          &models.UserModel{Pool: pool},
-		templateCache:  cache,
-		formDecoder:    formDecoder,
-		sessionManager: sessionManager,
+	app := &application.Application{
+		ErrorLog:       errorLog,
+		InfoLog:        infoLog,
+		Posts:          &models.PostModel{Pool: pool},
+		Users:          &models.UserModel{Pool: pool},
+		TemplateCache:  cache,
+		FormDecoder:    formDecoder,
+		SessionManager: sessionManager,
 	}
 	tlsConfig := &tls.Config{CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256}}
 	srv := &http.Server{
 		Addr:         *addr,
 		ErrorLog:     errorLog,
-		Handler:      app.routes(),
+		Handler:      app.Routes(),
 		TLSConfig:    tlsConfig,
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,

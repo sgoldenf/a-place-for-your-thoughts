@@ -1,4 +1,4 @@
-package main
+package application
 
 import (
 	"net/http"
@@ -6,13 +6,14 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (app *application) routes() http.Handler {
+func (app *Application) Routes() http.Handler {
 	router := chi.NewRouter()
 	router.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 	}))
 	fileServer := http.FileServer(http.Dir("./resources/static/"))
 	router.Method(http.MethodGet, "/static/*", http.StripPrefix("/static", fileServer))
+	router.Get("/ping", ping)
 	router.Get("/", app.loadAndSaveSession(app.noSurf(app.authenticate(app.home))))
 	router.Get("/page/{page}", app.loadAndSaveSession(app.noSurf(app.authenticate(app.home))))
 	router.Get("/post/view/{id}", app.loadAndSaveSession(app.noSurf(app.authenticate(app.viewPost))))
