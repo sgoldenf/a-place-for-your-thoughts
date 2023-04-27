@@ -38,7 +38,12 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) home(w http.ResponseWriter, r *http.Request) {
-	page, err := getPage(r)
+	count, err := app.Posts.GetPostsCount()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	page, err := getPage(r, count)
 	if err != nil {
 		app.notFound(w)
 		return
@@ -49,11 +54,6 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nextPage := page + 1
-	count, err := app.Posts.GetPostsCount()
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
 	if page*10+1 > count {
 		nextPage = 0
 	}
@@ -65,7 +65,7 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 		w, http.StatusOK, "home.tmpl", data)
 }
 
-func getPage(r *http.Request) (int, error) {
+func getPage(r *http.Request, postCount int) (int, error) {
 	page := chi.URLParam(r, "page")
 	if page == "" {
 		page = "1"
@@ -73,6 +73,9 @@ func getPage(r *http.Request) (int, error) {
 	pageNumber, err := strconv.Atoi(page)
 	if err != nil {
 		return 0, err
+	}
+	if (pageNumber-1)*10 >= postCount {
+		return 0, errors.New("not found")
 	}
 	return pageNumber, nil
 }

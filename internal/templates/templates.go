@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"fmt"
 	"html/template"
 	"path/filepath"
 
@@ -21,10 +22,11 @@ type TemplateData struct {
 
 func NewTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
-	pages, err := filepath.Glob("resources/html/pages/*.tmpl")
+	pages, err := filepath.Glob("./resources/html/pages/*.tmpl")
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(pages)
 	for _, page := range pages {
 		name := filepath.Base(page)
 		ts, err := template.ParseFiles("./resources/html/pages/base.tmpl")
