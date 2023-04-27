@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/sgoldenf/a-place-for-your-thoughts/internal/testutils"
 )
 
 func TestSecureHeaders(t *testing.T) {
@@ -22,21 +20,21 @@ func TestSecureHeaders(t *testing.T) {
 	secureHeaders(next).ServeHTTP(rr, r)
 	rs := rr.Result()
 	expectedValue := "default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com"
-	testutils.Equal(t, rs.Header.Get("Content-Security-Policy"), expectedValue)
+	equal(t, rs.Header.Get("Content-Security-Policy"), expectedValue)
 	expectedValue = "origin-when-cross-origin"
-	testutils.Equal(t, rs.Header.Get("Referrer-Policy"), expectedValue)
+	equal(t, rs.Header.Get("Referrer-Policy"), expectedValue)
 	expectedValue = "nosniff"
-	testutils.Equal(t, rs.Header.Get("X-Content-Type-Options"), expectedValue)
+	equal(t, rs.Header.Get("X-Content-Type-Options"), expectedValue)
 	expectedValue = "deny"
-	testutils.Equal(t, rs.Header.Get("X-Frame-Options"), expectedValue)
+	equal(t, rs.Header.Get("X-Frame-Options"), expectedValue)
 	expectedValue = "0"
-	testutils.Equal(t, rs.Header.Get("X-XSS-Protection"), expectedValue)
-	testutils.Equal(t, rs.StatusCode, http.StatusOK)
+	equal(t, rs.Header.Get("X-XSS-Protection"), expectedValue)
+	equal(t, rs.StatusCode, http.StatusOK)
 	defer rs.Body.Close()
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 	bytes.TrimSpace(body)
-	testutils.Equal(t, string(body), "OK")
+	equal(t, string(body), "OK")
 }
