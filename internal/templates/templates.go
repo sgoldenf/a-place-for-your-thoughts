@@ -19,7 +19,11 @@ type TemplateData struct {
 	CSRFToken       string
 }
 
+<<<<<<< HEAD
 func NewTemplateCache(basePath string) (map[string]*template.Template, error) {
+=======
+func NewTemplateCache() (map[string]*template.Template, error) {
+>>>>>>> 1a178fa (refactor: moved application logic to internal/application package && tested ping handler && tested testSecureHeaders middlware)
 	cache := map[string]*template.Template{}
 	pages, err := filepath.Glob(filepath.Join(basePath, "pages/*.tmpl"))
 	if err != nil {

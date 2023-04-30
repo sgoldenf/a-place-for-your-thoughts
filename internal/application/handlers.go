@@ -38,12 +38,16 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) home(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 	count, err := app.Posts.GetPostsCount()
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 	page, err := getPage(r, count)
+=======
+	page, err := getPage(r)
+>>>>>>> 1a178fa (refactor: moved application logic to internal/application package && tested ping handler && tested testSecureHeaders middlware)
 	if err != nil {
 		app.notFound(w)
 		return
@@ -54,6 +58,14 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nextPage := page + 1
+<<<<<<< HEAD
+=======
+	count, err := app.Posts.GetPostsCount()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+>>>>>>> 1a178fa (refactor: moved application logic to internal/application package && tested ping handler && tested testSecureHeaders middlware)
 	if page*10+1 > count {
 		nextPage = 0
 	}
