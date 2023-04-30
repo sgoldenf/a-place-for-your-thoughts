@@ -2,6 +2,7 @@ package application
 
 import (
 	"bytes"
+	"context"
 	"html"
 	"io"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -16,6 +18,8 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/models/mocks"
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/templates"
 )
@@ -108,4 +112,39 @@ func extractCSRFToken(t *testing.T, body string) string {
 		t.Fatal("no csrf token found in body")
 	}
 	return html.UnescapeString(string(matches[1]))
+}
+
+func newTestDB(t *testing.T) *pgxpool.Pool {
+	if err := godotenv.Load("../../.env"); err != nil {
+		t.Fatal(err)
+	}
+	testDB := os.Getenv("TEST_DB")
+	user := os.Getenv("TEST_DB_USER")
+	password := os.Getenv("TEST_DB_PASSWORD")
+	port := os.Getenv("TEST_DB_PORT")
+	dbURL := "postgres://" + user + ":" + password + "@localhost:" + port + "/" + testDB
+	db, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	script, err := os.ReadFile("../models/testdata/setup.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(context.Background(), string(script))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		script, err := os.ReadFile("../models/testdata/teardown.sql")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = db.Exec(context.Background(), string(script))
+		if err != nil {
+			t.Fatal(err)
+		}
+		db.Close()
+	})
+	return db
 }
