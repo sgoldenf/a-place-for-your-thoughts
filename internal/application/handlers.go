@@ -153,7 +153,6 @@ func (app *Application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "Invalid email address")
 	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "This field must be at least 8 characters long")
-	fmt.Println(form.Validator.FieldErrors, form.Name, form.Password, form.Email)
 	if !form.Valid() {
 		data := app.NewTemplateData(r)
 		data.Form = form

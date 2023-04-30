@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -43,12 +42,10 @@ func NotBlank(value string) bool {
 }
 
 func MaxChars(value string, n int) bool {
-	fmt.Println(value)
 	return utf8.RuneCountInString(value) <= n
 }
 
 func MinChars(value string, n int) bool {
-	fmt.Println(utf8.RuneCountInString(value))
 	return utf8.RuneCountInString(value) >= n
 }
 
