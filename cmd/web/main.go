@@ -13,6 +13,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/application"
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/models"
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/templates"
@@ -20,15 +21,36 @@ import (
 
 const templateBasePath = "./resources/html"
 
-func main() {
-	addr := flag.String("addr", ":4000", "HTTP network address")
-	dbURL := flag.String("dbURL", "postgres://sgoldenf:sgoldenf@localhost:5432/blog", "PostgresSQL database URL")
-	cert := flag.String("tls-cert", "./tls/cert.pem", "TLS public key")
-	key := flag.String("tls-key", "./tls/key.pem", "TLS private key")
+var (
+	addr  *string
+	dbURL *string
+	cert  *string
+	key   *string
+)
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Print("WARNING: No .env file found")
+	}
+	addr = flag.String("addr", os.Getenv("APP_PORT"), "HTTP network address")
+	dbName := os.Getenv("APP_DB")
+	user := os.Getenv("APP_DB_USER")
+	password := os.Getenv("APP_DB_PASSWORD")
+	dbPort := os.Getenv("DB_PORT")
+	dbURL = flag.String(
+		"dbURL",
+		"postgres://"+user+":"+password+"@localhost:"+dbPort+"/"+dbName,
+		"PostgresSQL database URL",
+	)
+	cert = flag.String("tls-cert", os.Getenv("TLS_CERT"), "TLS public key")
+	key = flag.String("tls-key", os.Getenv("TLS_KEY"), "TLS private key")
 	flag.Parse()
+}
+
+func main() {
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	pool, err := dbConn(*dbURL)
+	pool, err := dbConn()
 	if err != nil {
 		errorLog.Fatal(err)
 	}
@@ -66,8 +88,8 @@ func main() {
 	errorLog.Fatal(err)
 }
 
-func dbConn(dbURL string) (*pgxpool.Pool, error) {
-	conn, err := pgxpool.New(context.Background(), dbURL)
+func dbConn() (*pgxpool.Pool, error) {
+	conn, err := pgxpool.New(context.Background(), *dbURL)
 	if err != nil {
 		return nil, err
 	}
