@@ -21,8 +21,10 @@ type testServer struct {
 	*httptest.Server
 }
 
+const templateTestPath = "../../resources/html"
+
 func newTestApplication(t *testing.T) *Application {
-	templateCache, err := templates.NewTemplateCache()
+	templateCache, err := templates.NewTemplateCache(templateTestPath)
 	if err != nil {
 		t.Fatal(err)
 	}

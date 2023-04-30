@@ -1,7 +1,6 @@
 package templates
 
 import (
-	"fmt"
 	"html/template"
 	"path/filepath"
 
@@ -20,20 +19,19 @@ type TemplateData struct {
 	CSRFToken       string
 }
 
-func NewTemplateCache() (map[string]*template.Template, error) {
+func NewTemplateCache(basePath string) (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
-	pages, err := filepath.Glob("./resources/html/pages/*.tmpl")
+	pages, err := filepath.Glob(filepath.Join(basePath, "pages/*.tmpl"))
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(pages)
 	for _, page := range pages {
 		name := filepath.Base(page)
-		ts, err := template.ParseFiles("./resources/html/pages/base.tmpl")
+		ts, err := template.ParseFiles(filepath.Join(basePath, "pages/base.tmpl"))
 		if err != nil {
 			return nil, err
 		}
-		ts, err = ts.ParseGlob("./resources/html/components/*.tmpl")
+		ts, err = ts.ParseGlob(filepath.Join(basePath, "components/*.tmpl"))
 		if err != nil {
 			return nil, err
 		}

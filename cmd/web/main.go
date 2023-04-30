@@ -18,6 +18,8 @@ import (
 	"github.com/sgoldenf/a-place-for-your-thoughts/internal/templates"
 )
 
+const templateBasePath = "./resources/html"
+
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	dbURL := flag.String("dbURL", "postgres://sgoldenf:sgoldenf@localhost:5432/blog", "PostgresSQL database URL")
@@ -31,7 +33,7 @@ func main() {
 		errorLog.Fatal(err)
 	}
 	defer pool.Close()
-	cache, err := templates.NewTemplateCache()
+	cache, err := templates.NewTemplateCache(templateBasePath)
 	if err != nil {
 		errorLog.Fatal(err)
 	}
