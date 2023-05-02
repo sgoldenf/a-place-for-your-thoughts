@@ -45,6 +45,70 @@ func TestPing(t *testing.T) {
 	testutils.Equal(t, string(body), "OK")
 }
 
+func TestHomePage(t *testing.T) {
+	app := newTestApplication(t)
+	ts := testutils.NewTestServer(t, app.Routes())
+	defer ts.Close()
+	tests := []struct {
+		name     string
+		urlPath  string
+		wantCode int
+		wantPost string
+	}{
+		{
+			name:     "Home Page",
+			urlPath:  "/",
+			wantCode: http.StatusOK,
+			wantPost: "<td><a href='/post/view/1'>Title1</a></td>",
+		},
+		{
+			name:     "Valid Page",
+			urlPath:  "/page/1",
+			wantCode: http.StatusOK,
+			wantPost: "<td><a href='/post/view/1'>Title1</a></td>",
+		},
+		{
+			name:     "Negative Page",
+			urlPath:  "/page/-1",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name:     "Non-existent Page",
+			urlPath:  "/page/2",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name:     "Float Page",
+			urlPath:  "/page/1.5",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name:     "String Page",
+			urlPath:  "/page/one",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name:     "Empty Page",
+			urlPath:  "/page/",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name:     "Zero Page",
+			urlPath:  "/page/0",
+			wantCode: http.StatusNotFound,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			code, _, body := ts.Get(t, test.urlPath)
+			testutils.Equal(t, code, test.wantCode)
+			if test.wantPost != "" {
+				testutils.StringContains(t, string(body), test.wantPost)
+			}
+		})
+	}
+}
+
 func TestViewPost(t *testing.T) {
 	app := newTestApplication(t)
 	ts := testutils.NewTestServer(t, app.Routes())
@@ -84,6 +148,11 @@ func TestViewPost(t *testing.T) {
 		{
 			name:     "Empty ID",
 			urlPath:  "/post/view/",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name:     "Zero ID",
+			urlPath:  "/post/view/0",
 			wantCode: http.StatusNotFound,
 		},
 	}
