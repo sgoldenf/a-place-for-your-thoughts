@@ -1,23 +1,53 @@
 package application
 
 import (
+	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
+
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
+	"github.com/sgoldenf/a-place-for-your-thoughts/internal/models/mocks"
+	"github.com/sgoldenf/a-place-for-your-thoughts/internal/templates"
+	testutils "github.com/sgoldenf/a-place-for-your-thoughts/internal/test_utils"
 )
+
+const templateTestPath = "../../resources/html"
+
+func newTestApplication(t *testing.T) *Application {
+	templateCache, err := templates.NewTemplateCache(templateTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionManager := scs.New()
+	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
+	return &Application{
+		ErrorLog:       log.New(io.Discard, "", 0),
+		InfoLog:        log.New(io.Discard, "", 0),
+		Posts:          &mocks.PostModel{},
+		Users:          &mocks.UserModel{},
+		TemplateCache:  templateCache,
+		FormDecoder:    form.NewDecoder(),
+		SessionManager: sessionManager,
+	}
+}
 
 func TestPing(t *testing.T) {
 	app := newTestApplication(t)
-	ts := newTestServer(t, app.Routes())
+	ts := testutils.NewTestServer(t, app.Routes())
 	defer ts.Close()
-	code, _, body := ts.get(t, "/ping")
-	equal(t, code, http.StatusOK)
-	equal(t, string(body), "OK")
+	code, _, body := ts.Get(t, "/ping")
+	testutils.Equal(t, code, http.StatusOK)
+	testutils.Equal(t, string(body), "OK")
 }
 
 func TestViewPost(t *testing.T) {
 	app := newTestApplication(t)
-	ts := newTestServer(t, app.Routes())
+	ts := testutils.NewTestServer(t, app.Routes())
 	defer ts.Close()
 	tests := []struct {
 		name      string
@@ -59,10 +89,10 @@ func TestViewPost(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			code, _, body := ts.get(t, test.urlPath)
-			equal(t, code, test.wantCode)
+			code, _, body := ts.Get(t, test.urlPath)
+			testutils.Equal(t, code, test.wantCode)
 			if test.wantTitle != "" {
-				stringContains(t, string(body), test.wantTitle)
+				testutils.StringContains(t, string(body), test.wantTitle)
 			}
 		})
 	}
@@ -70,10 +100,10 @@ func TestViewPost(t *testing.T) {
 
 func TestUserSignup(t *testing.T) {
 	app := newTestApplication(t)
-	ts := newTestServer(t, app.Routes())
+	ts := testutils.NewTestServer(t, app.Routes())
 	defer ts.Close()
-	_, _, body := ts.get(t, "/user/signup")
-	validCSRFToken := extractCSRFToken(t, body)
+	_, _, body := ts.Get(t, "/user/signup")
+	validCSRFToken := testutils.ExtractCSRFToken(t, body)
 	const (
 		validName     = "Sgoldenf"
 		validPassword = "validPassword"
@@ -167,10 +197,10 @@ func TestUserSignup(t *testing.T) {
 			form.Add("email", test.userEmail)
 			form.Add("password", test.userPassword)
 			form.Add("csrf_token", test.csrfToken)
-			code, _, body := ts.postForm(t, "/user/signup", form)
-			equal(t, code, test.wantCode)
+			code, _, body := ts.PostForm(t, "/user/signup", form)
+			testutils.Equal(t, code, test.wantCode)
 			if test.wantFormTag != "" {
-				stringContains(t, body, test.wantFormTag)
+				testutils.StringContains(t, body, test.wantFormTag)
 			}
 		})
 	}

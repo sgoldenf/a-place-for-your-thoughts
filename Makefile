@@ -6,7 +6,7 @@ compose:
 	docker-compose up --detach
 
 migration:
-	migrate -path migrations -database postgres://$(APP_DB_USER):$(APP_DB_PASSWORD)@localhost:$(DB_PORT)/$(APP_DB)?sslmode=disable up
+	migrate -path migrations -database postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/$(APP_DB)?sslmode=disable up
 
 run_server:
 	go run ./cmd/web/

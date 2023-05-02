@@ -1,11 +1,10 @@
-package application
+package testutils
 
 import (
 	"bytes"
 	"context"
 	"html"
 	"io"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -14,44 +13,18 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/alexedwards/scs/v2"
-	"github.com/go-playground/form/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	"github.com/sgoldenf/a-place-for-your-thoughts/internal/models/mocks"
-	"github.com/sgoldenf/a-place-for-your-thoughts/internal/templates"
 )
-
-type testServer struct {
-	*httptest.Server
-}
-
-const templateTestPath = "../../resources/html"
 
 var csrfTokenRX = regexp.MustCompile(`<input type='hidden' name='csrf_token' value='(.+)'>`)
 
-func newTestApplication(t *testing.T) *Application {
-	templateCache, err := templates.NewTemplateCache(templateTestPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sessionManager := scs.New()
-	sessionManager.Lifetime = 12 * time.Hour
-	sessionManager.Cookie.Secure = true
-	return &Application{
-		ErrorLog:       log.New(io.Discard, "", 0),
-		InfoLog:        log.New(io.Discard, "", 0),
-		Posts:          &mocks.PostModel{},
-		Users:          &mocks.UserModel{},
-		TemplateCache:  templateCache,
-		FormDecoder:    form.NewDecoder(),
-		SessionManager: sessionManager,
-	}
+type TestServer struct {
+	*httptest.Server
 }
 
-func newTestServer(t *testing.T, h http.Handler) *testServer {
+func NewTestServer(t *testing.T, h http.Handler) *TestServer {
 	ts := httptest.NewTLSServer(h)
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -61,10 +34,10 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
-	return &testServer{ts}
+	return &TestServer{ts}
 }
 
-func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, string) {
+func (ts *TestServer) Get(t *testing.T, urlPath string) (int, http.Header, string) {
 	rs, err := ts.Client().Get(ts.URL + urlPath)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +51,7 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, strin
 	return rs.StatusCode, rs.Header, string(body)
 }
 
-func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, string) {
+func (ts *TestServer) PostForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, string) {
 	rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
 	if err != nil {
 		t.Fatal(err)
@@ -92,21 +65,28 @@ func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (i
 	return rs.StatusCode, rs.Header, string(body)
 }
 
-func equal[T comparable](t *testing.T, actual, expected T) {
+func Equal[T comparable](t *testing.T, actual, expected T) {
 	t.Helper()
 	if actual != expected {
 		t.Errorf("got: %v; expected: %v", actual, expected)
 	}
 }
 
-func stringContains(t *testing.T, actual, expectedSubstring string) {
+func NilError(t *testing.T, actual error) {
+	t.Helper()
+	if actual != nil {
+		t.Errorf("got: %v; expected: nil", actual)
+	}
+}
+
+func StringContains(t *testing.T, actual, expectedSubstring string) {
 	t.Helper()
 	if !strings.Contains(actual, expectedSubstring) {
 		t.Errorf("got: %q; expected to contain: %q", actual, expectedSubstring)
 	}
 }
 
-func extractCSRFToken(t *testing.T, body string) string {
+func ExtractCSRFToken(t *testing.T, body string) string {
 	matches := csrfTokenRX.FindStringSubmatch(body)
 	if len(matches) < 2 {
 		t.Fatal("no csrf token found in body")
@@ -114,15 +94,14 @@ func extractCSRFToken(t *testing.T, body string) string {
 	return html.UnescapeString(string(matches[1]))
 }
 
-func newTestDB(t *testing.T) *pgxpool.Pool {
+func NewTestDB(t *testing.T) *pgxpool.Pool {
 	if err := godotenv.Load("../../.env"); err != nil {
 		t.Fatal(err)
 	}
 	testDB := os.Getenv("TEST_DB")
 	user := os.Getenv("TEST_DB_USER")
 	password := os.Getenv("TEST_DB_PASSWORD")
-	port := os.Getenv("TEST_DB_PORT")
-	dbURL := "postgres://" + user + ":" + password + "@localhost:" + port + "/" + testDB
+	dbURL := "postgres://" + user + ":" + password + "@localhost:5432/" + testDB
 	db, err := pgxpool.New(context.Background(), dbURL)
 	if err != nil {
 		t.Fatal(err)

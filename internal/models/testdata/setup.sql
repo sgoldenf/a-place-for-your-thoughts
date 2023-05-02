@@ -12,7 +12,7 @@ create table if not exists users (
 );
 alter table users
 add constraint users_uc_email UNIQUE(email);
-insert into users
+insert into users (name, email, hashed_password, created)
 values (
         'sgoldenf',
         'sgoldenf@example.com',

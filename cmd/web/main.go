@@ -36,10 +36,9 @@ func init() {
 	dbName := os.Getenv("APP_DB")
 	user := os.Getenv("APP_DB_USER")
 	password := os.Getenv("APP_DB_PASSWORD")
-	dbPort := os.Getenv("DB_PORT")
 	dbURL = flag.String(
 		"dbURL",
-		"postgres://"+user+":"+password+"@localhost:"+dbPort+"/"+dbName,
+		"postgres://"+user+":"+password+"@localhost:5432/"+dbName,
 		"PostgresSQL database URL",
 	)
 	cert = flag.String("tls-cert", os.Getenv("TLS_CERT"), "TLS public key")
