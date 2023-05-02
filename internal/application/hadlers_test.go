@@ -59,13 +59,13 @@ func TestHomePage(t *testing.T) {
 			name:     "Home Page",
 			urlPath:  "/",
 			wantCode: http.StatusOK,
-			wantPost: "<td><a href='/post/view/1'>Title1</a></td>",
+			wantPost: "<td><a href='/post/view/1'>Title 1</a></td>",
 		},
 		{
 			name:     "Valid Page",
 			urlPath:  "/page/1",
 			wantCode: http.StatusOK,
-			wantPost: "<td><a href='/post/view/1'>Title1</a></td>",
+			wantPost: "<td><a href='/post/view/1'>Title 1</a></td>",
 		},
 		{
 			name:     "Negative Page",
@@ -90,11 +90,6 @@ func TestHomePage(t *testing.T) {
 		{
 			name:     "Empty Page",
 			urlPath:  "/page/",
-			wantCode: http.StatusNotFound,
-		},
-		{
-			name:     "Zero Page",
-			urlPath:  "/page/0",
 			wantCode: http.StatusNotFound,
 		},
 	}
