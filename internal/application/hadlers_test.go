@@ -205,3 +205,26 @@ func TestUserSignup(t *testing.T) {
 		})
 	}
 }
+
+func TestCreatePostForm(t *testing.T) {
+	app := newTestApplication(t)
+	ts := testutils.NewTestServer(t, app.Routes())
+	defer ts.Close()
+	t.Run("Unauthenticated", func(f *testing.T) {
+		code, header, _ := ts.Get(t, "/post/create")
+		testutils.Equal(t, code, http.StatusSeeOther)
+		testutils.Equal(t, header.Get("Location"), "/user/login")
+	})
+	t.Run("Unauthenticated", func(t *testing.T) {
+		_, _, body := ts.Get(t, "/user/signup")
+		csrfToken := testutils.ExtractCSRFToken(t, body)
+		form := url.Values{}
+		form.Add("email", "login@example.com")
+		form.Add("password", "password")
+		form.Add("csrf_token", csrfToken)
+		ts.PostForm(t, "/user/login", form)
+		code, _, body := ts.Get(t, "/post/create")
+		testutils.Equal(t, code, http.StatusOK)
+		testutils.StringContains(t, body, "<form action='/post/create' method='POST'>")
+	})
+}
