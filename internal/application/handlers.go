@@ -38,7 +38,6 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) home(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("HERE")
 	count, err := app.Posts.GetPostsCount()
 	if err != nil {
 		app.serverError(w, err)
@@ -46,6 +45,7 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	}
 	page, err := getPage(r, count)
 	if err != nil {
+		fmt.Println(err)
 		app.notFound(w)
 		return
 	}
@@ -75,7 +75,7 @@ func getPage(r *http.Request, postCount int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if (pageNumber-1)*10 >= postCount || pageNumber < 1 {
+	if (pageNumber > 1 && (pageNumber-1)*10 >= postCount) || pageNumber < 1 {
 		return 0, errors.New("not found")
 	}
 	return pageNumber, nil

@@ -32,7 +32,7 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("WARNING: No .env file found")
 	}
-	addr = flag.String("addr", os.Getenv("APP_PORT"), "HTTP network address")
+	addr = flag.String("addr", ":4000", "HTTP network address")
 	dbName := os.Getenv("APP_DB")
 	user := os.Getenv("APP_DB_USER")
 	password := os.Getenv("APP_DB_PASSWORD")
