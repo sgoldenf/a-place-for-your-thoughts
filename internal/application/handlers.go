@@ -45,7 +45,6 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 	}
 	page, err := getPage(r, count)
 	if err != nil {
-		fmt.Println(err)
 		app.notFound(w)
 		return
 	}

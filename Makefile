@@ -1,6 +1,6 @@
 include .env
 
-all: compose run_server
+all: clean compose run_server
 
 compose:
 	docker-compose up --detach
